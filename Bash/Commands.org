@@ -1,0 +1,34 @@
+#+TITLE: Shell Commands
+#+OPTIONS: toc:nil
+
+* Commands
+** Execute commands on the remote server using ~ssh~
+#+begin_src sh
+ssh username@hostname "cd ~; pwd"
+#+end_src
+Execute commands on the remote server. If the commands need some interaction,
+we need system to allocate tty for us using ~-t~ option.
+
+#+begin_src sh
+ssh username@hostname 'bash -s' < test.sh helloworld
+#+end_src
+In this way we can execute the contents in local script with options. But if we
+need interaction, we can only use the following way:
+#+begin_src sh
+ssh -t username@hostname "`cat test.sh`"
+#+end_src
+
+#+begin_src sh
+ssh username@hostname test.sh helloworld
+#+end_src
+Execute remote script file in remote server.
+
+** Remote synchronization using ~rsync~
+#+begin_src sh
+# Copy the whole folder including hidden files.
+rsync -avz \~/.emacs.d/ username@hostname:\~/.emacs.d
+
+# Ignore hidden files directly in the folder, but will include hidden files in subdirectory.
+rsync -avz \~/.emacs.d/* username@hostname:\~/.emacs.d
+#+end_src
+~-exclude=dir~ and ~-exclude-from=file.list~ can help us to exclude some files.

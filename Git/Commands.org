@@ -1,0 +1,18 @@
+#+TITLE: Git Commands
+#+OPTIONS: toc:nil
+
+* Commands
+#+begin_src sh
+git log --pretty=oneline filename
+#+end_src
+Show recent modifications on the specific file.
+
+#+begin_src sh
+git blame -L n,m filename
+#+end_src
+Check who has done modifications on specified line ranges of the file.
+
+#+begin_src sh
+git show commitID filename
+#+end_src
+Check the modifications of specified commitID on the file.

@@ -1,0 +1,24 @@
+#+TITLE: Notes of Org-mode
+#+OPTIONS: toc:nil
+* Commands
+/C-u TAB(org-global-cycle)/
+Global cycling: Rotate the entire buffer among the states.
+OVERVIEW -> CONTENTS -> SHOW ALL
+
+/C-c C-x b(org-tree-to-indirect-buffer)/
+Show the current subtree in an indirect buffer.
+
+/M-RET(org-meta-return)/
+Insert a new heading, item or row.
+* Special Text Mark
+*bold*
+/italic/
+_underline_
+=code=
+~verbatim~
++strike-through+
+* Header
+=#+OPTIONS: \n:t/= Start a newline when you press RET.
+
+=#+OPTIONS: toc:nil=
+Disable defaultly adding table of contents(TOC) when exporting.
