@@ -10,6 +10,9 @@ Show the current subtree in an indirect buffer.
 
 /M-RET(org-meta-return)/
 Insert a new heading, item or row.
+
+/M-x org-entities-help/
+Check out org entities help.
 * Special Text Mark
 *bold*
 /italic/

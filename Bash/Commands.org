@@ -26,9 +26,9 @@ Execute remote script file in remote server.
 ** Remote synchronization using ~rsync~
 #+begin_src sh
 # Copy the whole folder including hidden files.
-rsync -avz \~/.emacs.d/ username@hostname:\~/.emacs.d
+rsync -avz \tilde{}/.emacs.d/ username@hostname:\tilde{}/.emacs.d
 
 # Ignore hidden files directly in the folder, but will include hidden files in subdirectory.
-rsync -avz \~/.emacs.d/* username@hostname:\~/.emacs.d
+rsync -avz \tilde{}/.emacs.d/* username@hostname:\tilde{}/.emacs.d
 #+end_src
 ~-exclude=dir~ and ~-exclude-from=file.list~ can help us to exclude some files.
