@@ -48,12 +48,15 @@ git rebase master
 #+end_src
 
 如果想要对当前分支的近一次commit进行修改，也可以采用rebase命令：
+
 #+begin_src sh
 git checkout feature
 git rebase -i HEAD~3
 #+end_src
 
 在使用rebase命令时，最好避免对公开分支的commit进行重新修改，因为可能有其他人基于这些commit进行工作。
+
+对远程分支进行rebase时，需要事先fetch，否则只会针对本地存在的origin分支。
 
 [[https://www.atlassian.com/git/tutorials/merging-vs-rebasing][merging-vs-rebasing]]
 [[https://git-scm.com/book/en/v2/Git-Branching-Rebasing][Git-Branching-Rebasing]]

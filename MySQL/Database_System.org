@@ -95,3 +95,609 @@ Provides a way to write auxiliaxy statements for use in a larger query.
 - Think of it like a temp table just for one query
 
 Alternative to nested queries and views.
+* Tree Indexes
+** Table Indexes
+A table index is a replica of a subset of a table's columns that are organized and/or sorted for efficient access using a subset of those columns.
+** B+ tree
+*** Properties
+A B+tree is an M-way(M is maximum number of keys you can have in a single node)search tree with the following properties:
+
+- It is perfectly balanced (i.e., every leaf node is at the same depth).
+- Every inner node other than the root, is at least half-full M/2-1 <= #keys <= M-1
+- Every inner node with k keys has k+1 non-null children.
+*** B+ tree nodes
+Every node in the B+tree contains an array of key/value pairs.
+
+- The keys will always be the column or columns that you built your index on.
+- The values will differ based on whether the node is classified as inner nodes(pointer to another inner node or leaf node) or leaf nodes(record id or the tuple of contents).
+
+The arrays are always kept in sorted order. When you load on a node, you do a binary search.
+
+**** Leaf node values
+Approach #1: Record Ids
+
+- A pointer to the location of the tuple that the index entry corresponds to.
+
+Approach #2: Tuple Data
+
+- The actual contents of the tuple is stored in the leaf node.
+- Secondly indexes have to store the record id as their values.
+- Typically it's used for primary key.
+
+The size of B+tree node is usally the size of page. The sibling pointers are not pointing to memories, instead page ids. Because database need to go to the page table to fetch the page.
+
+**** Type
+- Clustered B+ tree
+
+The sorted tuples are stored sequentially in the same page.
+
+- Unclustered B+ tree
+
+The tuples in leaf nodes are distributed in different pages.
+
+** Operations
+*** Insert
+Find correct leaf L.
+
+Put data entry into L in sorted order.
+- If L has enough space, done!
+- Else, must split L into L and a new node L2
+  - Redistribute entries evenly, copy up middle key.
+  - Insert index entry pointing to L2 into parent of L.
+
+To split inner node, redistribute entries evenly, but push up middle key.
+
+*** Delete
+Start at root, find leaf L where entry belongs.
+
+Remove the entry.
+- If L is at least half-full, done!
+- If L has only M/2-1 entries,
+  - Try to re-distribute, borrowing from sibling(adjacent node with same parent as L).
+  - If re-distribution fails, merge L and sibling.
+
+If merge occurred, must delete entry(pointing to L or sibling) from parent of L.
+
+** Problems
+*** Non-unique indexes
+Approach #1: Duplicate Keys
+
+- Use the same leaf node layout but store duplicate keys multiple times.
+
+Approach #2: Value Lists
+
+- Store each key only once and maintain a linked list of unique values.
+
+*** Variable length keys
+Approach #1: Pointers
+
+- Store the keys as pointers to the tuple's attribute. (rare)
+
+Approach #2: Variable length nodes
+
+- The size of each node in B+tree can vary.
+- Requires careful memory management.
+
+Approach #3: Key map
+
+- Embed an array of pointers that map to the key + value list within the node.
+** Partial indexes
+Create an index on subset of entire table. This potentially reduces the size of indexes and the amount of overhead to maintain it.
+** Covering indexes
+If all of the fields needed to process the query are available in an index, then the DBMS doesn't need to retrieve the whole tuple. This reduces contention on DBMS's buffer pool resources.
+** Index include columns
+Embed addtional columns in indexes to support index-only queries. Not a part of search key. This stores addtional columns in leaf node.
+** Functional/expression indexes
+The index does not need to store keys in the same way that they appear in their base table. You can use expressions when declaring an index.
+** Skip lists
+Multiple levels of linked lists with extra pointers that skip over intermediate nodes. Maintain keys in sorted order without requiring global rebalancing.
+
+A collection of lists at different levels
+- Lowest level is a sorted, single linked list of all keys.
+- 2nd level links every other key.
+- 3rd level links every fourth key.
+- In general, a level has half the keys of one below it.
+
+To insert a key, flip a coin to decide how many levels to add the new key into. Provides approximately O(log n) search time complexity.
+** Radix tree
+Represent keys as individual digits. This allow threads to examine prefix one-by-one instead of comparing entire key.
+- The height of the tree depends on the length of the key.
+- Does not require rebalancing.
+- The path to a leaf node represents the key of the leaf.
+- Keys are stored implicitly and can be reconstructed from paths.
+* Query processing
+** Query plan
+The operators are arranged in a tree. Data flows from the leaves toward the root.
+
+The ouput of the root node is the result of the query.
+** Processing model
+A DBMS's processing model defines how the system executes a query plan.
+- Different trade-offs for different workloads.
+
+Three approaches:
+- Iterator model
+- Materialization model
+- Vectorized / Batch model
+
+*** Iterator model
+Each query plan operator implements a next function.
+- On each invocation, the operator returns either a single tuple or a null marker if there are no more tuples.
+- The operator implements a loop that calls next on its children to retrieve their tuples and then process them.
+
+This is used in almost every DBMS. Allows for tuple pipelining.
+
+Some operators will block until children emit all of their tuples.
+- Joins, Subqueries, Order by.
+
+Output control works easily with this approach.
+- Limit.
+
+*** Materialization model
+Each operator processes its input all at once and then emits its output all at once.
+- The operator "materializes" its output as a single result.
+- The DBMS can push down hints into to avoid scanning too many tuples.
+
+Bottom-up plan processing.
+
+*** Vectorization model
+Like iterator model, each operator implements a next function.
+
+Each operator emits a batch of tuples instead of a single tuple.
+- The operator's internal loop processes multiple tuples at a time.
+- The size of batch can vary based on hardware or query properties.
+
+** Access method
+An access method is a way that the DBMS can access the data stored in a table.
+- Not defined in relational algebra.
+
+Three basic approaches:
+- Sequential scan.
+- Index scan.
+- Multi-index / "Bitmap" scan.
+
+*** Sequential scan
+For each page in the table:
+- Retrieve it from the buffer pool.
+- Iterate over each tuple and check whether to include it.
+
+The DBMS maintains an internal cursor that tracks the last page / slot it examined.
+
+**** Optimizations
+This is almost the worst thing that the DBMS can do to execute a query.
+
+Sequential scan optimizations:
+- Prefetching
+- Parallelization
+- Buffer pool bypass
+- Zone mapsp
+- Late materialization
+- Heap clustering
+
+** Expression evaluation
+The DBMS represents a WHERE clause as an expression tree.
+* Sorting & Aggregation algorithms
+** Sorting
+- External merge sort
+- Use B+ tree
+  - Good for clustered B+ tree
+  - For unclustered B+ tree, this is almost always a bad idea. In general, one I/O per data record. The DBMS will choose the best one for us. Whether to use index, or do external merge sort.
+** Aggregation
+*** Sort
+*** Hashing
+Hashing is a better alternative in this scenario.
+- Only need to remove duplicates, no need for ordering.
+- Can be computationally cheaper than sorting.
+* Join algorithms
+We normalize tables in a relational database to avoid unnecessary repetition of information.
+
+We use the join operate to reconstruct the original tuples without any information loss.
+
+In general, we want the smaller table to always be the outer table.
+
+** Nested Loop Join
+Summary:
+- Pick the smaller table as the outer table.
+- Buffer as much of the outer table in memory as possible.
+- Loop over the inner table or use an index.
+
+*** Simple
+#+begin_src C
+foreach tuple r in R: (outer table)
+  foreach tuple s in S: (inner table)
+    emit, if r and s match
+#+end_src
+The outer table has M pages and m tuples. The inner table has N pages and n tuples.
+
+So the cost is: M + (m \star{} N). In most cases, if we use the smaller table as the outer table, it will reduce the IO cost.
+
+*** Block
+Because the buffer pool reads tuples from the disk as pages. So we can do nested loop inside two pages first.
+
+#+begin_src C
+foreach block Br in R:
+  foreach block Bs in S:
+    foreach tuple r in Br:
+      foreach tuple s in Bs:
+        emit, if r and s mathch
+#+end_src
+
+This algorithm performs fewer disk accesses.
+- For every block in R, it scans S once.
+
+Cost: M + (M \star{} N)
+
+Also, the smaller table in terms of # of pages should be the outer table.
+
+What if we have B buffers available?
+- Use B-2 buffers for scanning the outer table.
+- Use one buffer for the inner table, one buffer for sorting output.
+
+This algorithm uses B-2 buffers for scanning R.
+
+Cost: M + (M / (B - 2) \star{} N)
+
+*** Index
+Use an index to find inner table matches to accelerate the join.
+- We could use an existing index for the join.
+- Or even build one on the fly.
+
+#+begin_src C
+foreach tuple r in R:
+  foreach tuple s in Index(ri = sj):
+    emit, if r and s match
+#+end_src
+
+Assume the cost of each index probe is some constant C per tuple.
+
+Cost: M + (m \star{} C)
+
+** Sort-Merge Join
+Phase #1: Sort
+- Sort both tables on the join key(s).
+- Can use the external merge sort algorithm that we talked about last clase.
+
+Phase #2: Merge
+- Step through the two sorted tables in parallel, and emit matching tuples.
+- May need to backtrack depending on the join type.
+
+Sort Cost (R): 2M \times{} (log M / log B)
+
+Sort Cost (S): 2N \times{} (log N / log B)
+
+Merge Cost: M + N
+
+When is sort-merge join useful?
+- One or both tables are already sorted on join key.
+- Output must be sorted on join key.
+
+The input relations may be sorted by either by an explicit sort operator, or by scanning the relation using an index on the join key.
+** Hash Join
+Phase #1: Build
+- Scan the outer relation and populate a hash table using the hash function h1 on the join attributes.
+
+Phase #2: Probe
+- Scan the inner relation and use h1 on each tuple to jump to a location in the hash table and find a matching tuple.
+
+*** Hash table contents
+Key: The attribute(s) that the query is joining the tables on.
+
+Value: Varies per implementation.
+- Depends on what the operators above the join in the query plan expect as its output.
+
+Approach #1: Full Tuple
+- Avoid having to retrieve the outer relation's tuple contents on a match.
+- Takes up more space in memory.
+
+Approach #2: Tuple Identifier
+- Ideal for column stores because the DBMS doesn't fetch data from disk it doesn't need.
+- Also better if join selectivity is low.
+
+** Conclusion
+Hashing is almost always better than sorting for operator execution.
+
+Caveats:
+- Sorting is better on non-uniform data.
+- Sorting is better when result needs to be sorted.
+
+Good DBMSs use either or both.
+* Query Optimization
+Remember that SQL is declarative.
+- User tells the DBMS what answer they want, not know how to get the answer.
+
+** Two approaches
+Heuristics / Rules (written by human)
+- Rewrite the query to remove stupid / inefficient things.
+- Does not require a cost model.
+
+Cost-based Search
+- Use a cost model to evalute multiple equivalent plans and pick the one with the lowest cost.
+
+** Query planning overview
+SQL Query -> Parser -> (Abstract Syntax Tree) -> Binder (Name -> Internal ID) -> (Annotated AST) -> Rewriter -> Optimizer.
+
+** Relational algebra equivalences
+Two relational algebra expressions are equivalent if they generate the same set of tuples.
+
+The DBMS can identify better query plans without a cost model. This is often called *query rewriting*.
+
+Selections:
+- Perform filters as early as possible.
+- Reorder predicates so that the DBMS applies the most selective one first.
+- Break a complex predicate, and push down.
+
+Projections:
+- Perform them early to create smaller tuples and reduce intermediate results (if duplicates are eliminated).
+- Project out all attributes except the ones requested or required (e.g., joining keys).
+
+This is not important for a column store.
+
+Joins:
+- Commutative, associative.
+
+** Cost estimation
+How long will a query take?
+- CPU: small cost; tough to estimate.
+- Disk: # of block transfers.
+- Memory: Amount of DRAM used.
+- Network: # of messages.
+
+So we need to keep some statistics.
+
+The DBMS stores internal statistics about the tables, attributes, and indexes in its internal catalog.
+
+Different systems update them at different times.
+
+Manual invocations:
+- Postgres/SQLite: ANALYZE
+- Oracle/MySQL: ANALYZE TABLE
+- SQL Server: UPDATE STATISTICS
+- DB2: RUNSTATS
+
+*** Statistics
+For each relation R, the DBMS maintains the following information:
+- Nr: Number of tuples in R.
+- V(A, R): Number of distinct values for attribute A.
+
+The selection cardinality SC(A, R) is the average number of records with a value for an attribute A given Nr / V(A, R).
+
+*** Complex predicates
+The selectity(sel) of a predicate P is the fraction of tuples that qualify.
+
+Formula depends on type of predicate:
+- Equality
+- Range
+- Negation
+- Conjunction
+- Disjunction
+
+1. Equality
+
+sel(A=constant) = SC(P) / V(A, R)
+
+2. Range Query
+
+sel(A>=a) = (Amax - a) / (Amax - Amin)
+
+3. Negation Query
+
+sel(not P) = 1 - sel(P)
+
+4. Conjunction
+
+sel(P1 \land{} P2) = sel(P1) \times{} sel(P2)
+
+This assumes that the predicates are independent.
+
+5. Disjunction
+
+sel(P1 \lor{} P2) = sel(P1) + sel(P2) - sel(P1 \land{} P2)
+*** Result size estimation for joins
+General case: Rcols \lor{} Scols = {A} where A is not a key for either table.
+- Match each R-tuple with S-tuples:
+  estSize = Nr \times{} Ns / V(A, S)
+- Symmetrically, for S:
+  estSize = Nr \times{} Ns / V(A, R)
+
+Overall:
+  estSize = Nr \times{} Ns / max{V(A, S), V(A, R)}
+* Midterm Review
+** Relational Model
+Integrity Constraints
+
+Relation Algebra
+** SQL
+Basic operations:
+- SELECT / INSERT / UPDATE / DELETE
+- WHERE predicates
+- Output control
+
+More complex operations:
+- Joins
+- Aggregates
+- Common Table Expressions
+** Storage
+Buffer Management Policies
+- LRU / MRU / CLOCK
+
+On-Disk File Organization
+- Heaps
+- Linked Lists
+
+Page Layout
+- Slotted Pages
+- Log-Structured
+** Hashing
+Static Hashing
+- Linear Probing
+- Robin Hood
+- Cuckoo Hashing
+
+Daynamic Hashing
+- Extendible Hashing
+- Linear Hashing
+
+Comparison with B+ Trees
+** Tree Indexes
+B+ Tree
+- Insertions / Deletions
+- Splits / Merges
+- Difference with B-Tree
+- Latch Crabbing / Coupling
+
+Radix Trees
+
+Skip Lists
+** Sorting
+Two-way External Merge Sort
+
+General External Merge Sort
+
+Cost to sort different data sets with different number of buffers.
+** Query Processing
+Processing Models
+- Advantages / Disadvantages
+
+Join Algoritms
+- Nested Loop
+- Sort-Merge
+- Hash
+* Parallel Execution
+** Parallel VS Distributed
+Paralle DBMSs:
+- Nodes are physically close to each other.
+- Nodes connected with high-speed LAN.
+
+Distributed DBMSs:
+- Nodes can be far from each other.
+- Nodes connected using public network.
+- Communication cost and problems cannot be ignored.
+
+** Process Model
+A DBMS's process model defines how the system is architected to support concurrent requests from a multi-user  application.
+
+A worker is the DBMS component that is responsible for executing tasks on behalf of the client and returning the results.
+
+*** Approach #1: Process per DBMS Worker
+Each worker is a separate OS process.
+- Relies on OS scheduler.
+- Use shared-memory for global data structures.
+- A process crash doesn't take down entire system.
+- Examples: IBM DB2, Postgres, Oracle.
+*** Approach #2: Process Pool
+A worker uses any process that is free in a pool.
+- Still relies on OS scheduler and shared memory.
+- Bad for CPU cache locality.
+- Examples: IBM DB2, Postgres(2015)
+*** Approach #3: Thread per DBMS Worker
+Single process with multiple worker threads.
+- DBMS has to manage its own scheduling.
+- May or may not use a dispatcher thread.
+- Thread crash (may) kill the entire system.
+- Examples: IBM DB2, MS SQL, MySQL, Oracle (2014)
+
+**** Scheduling
+For each query plan, the DBMS has to decide where, when, and how to execute it.
+- How many tasks should it use?
+- How many CPU cores should it use?
+- What CPU core should the tasks execute on?
+- Where should a task store its output?
+
+The DBMS always knows more than operating system.
+
+** Inter- VS Intra-Query Parallelism
+*** Inter-Query: Different queries are executed concurrently.
+- Increases throughput & reduces latency.
+
+If queries are read-only, then this requires little coordination between queries.
+
+If queries are updating the database at the same time, then this is hard to do this correctly.
+- Need to provide the illusion of isolation
+
+*** Intra-Query: Execute the operations of a single query in parallel.
+- Decreases latency for long-running queries.
+
+**** Approach #1: Intra-Operator (Horizontal)
+Operators are decomposed into independent instances that perform the same function on different subsets of data.
+
+The DBMS inserts an exchange operator into the query plan to coalesce results from children operators.
+**** Approach #2: Inter-Operator (Vertical)
+Operations are overlapped in order to pipeline data from one stage to the next without materialization. Also called pipelined parallelism.
+
+** I/O Parallelism
+Split the DBMS installation across multiple storage devices.
+* Embedded Logic
+** User-defined functions
+A user-defined function (UDF) is a function written by the application developer that extends the system's functionality beyond its built-in operations.
+- It takes in input arguments (scalars)
+- Perform some computation
+- Return a result (scalars, tables)
+** Stored procedures
+A stored procedure is a self-contained function that performs more complex logic inside of the DBMS.
+- Can have many input/output parameters.
+- Can modify the database table/structures.
+- Not normally used within a SQL query.
+** Stored procedures VS UDF
+A UDF is meant to perform a subset of a read-only computation within a query.
+
+A stored procedure is meant to perform a complete computation that is independent of query.
+** Database triggers
+A trigger instructs the DBMS to invoke a UDF when some event occurs in the database.
+
+The developer has to define:
+- What type of event will cause it to fire.
+- The scope of the event.
+- When it fires relative to that event.
+
+Event type:
+- INSERT
+- UPDATE
+- DELETE
+- TRUNCATE
+- CREATE
+- ALTER
+- DROP
+
+Event scope:
+- TABLE
+- DATABASE
+- VIEW
+- SYSTEM
+
+Trigger timing:
+- Before the statement executes.
+- After the statement executes.
+- Before each row that the statement affects.
+- After each row that the statement affects.
+- Instead of the statement.
+** Change notifications
+A change notification is like a trigger except that the DBMS sends a message to an external entity that something notable has happened in the database.
+- Think a "pub/sub" system.
+- Can be chained with a trigger to pass along whenever a change occurs.
+
+SQL standard: LISTEN + NOTIFY.
+** Complex types
+Approach #1: Attribute splitting
+- Store each primitive element in the complex type as its own attribute in the table.
+
+Approach #2: Application serialization
+- Java serialize, Python pickle
+- Google protobuf, Facebook thrift
+- JSON / XML
+** User-defined types
+A user-defined type is a special data type that is defined by the application developer that the DBMS can stored natively.
+** Views
+Create a "virtual" table containing the output from a SELECT query. The view can then be accessed as if it was a real table.
+
+This allows programmers to simplify a complex query that is executed often.
+- Won't make it faster though.
+
+Often used as mechanism for hiding a subset of a table's attributes from certain users. The DBMS will rewrite the SQL.
+** Views VS Select Into
+VIEW
+- Dynamic results are only materialized when needed.
+
+SELECT...INTO
+- Creates static table that does not get updated when student gets updated.
+
+MATERIALIZED VIEWS
+Create a view containing the output from a SELECT query that is automatically updated when the underlying tables change.
