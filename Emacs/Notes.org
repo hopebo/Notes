@@ -1,0 +1,6 @@
+#+OPTIONS: toc:nil
+* Tips
+** How to debug in Emacs
+=M-x toggle-debug-on-quit=
+
+Press =C-g= to enter Lisp debugger.

@@ -1,0 +1,54 @@
+* Review
+** Relational Model
+Integrity Constraints
+
+Relation Algebra
+** SQL
+Basic operations:
+- SELECT / INSERT / UPDATE / DELETE
+- WHERE predicates
+- Output control
+
+More complex operations:
+- Joins
+- Aggregates
+- Common Table Expressions
+** Storage
+Buffer Management Policies
+- LRU / MRU / CLOCK
+
+On-Disk File Organization
+- Heaps
+- Linked Lists
+
+Page Layout
+- Slotted Pages
+- Log-Structured
+** Hashing
+Static Hashing
+- Linear Probing
+- Robin Hood
+- Cuckoo Hashing
+
+Daynamic Hashing
+- Extendible Hashing
+- Linear Hashing
+
+Comparison with B+ Trees
+** Tree Indexes
+B+ Tree
+- Insertions / Deletions
+- Splits / Merges
+- Difference with B-Tree
+- Latch Crabbing / Coupling
+
+Radix Trees
+
+Skip Lists
+** Sorting
+Two-way External Merge Sort
+
+General External Merge Sort
+
+Cost to sort different data sets with different number of buffers.
+** Query Processing
