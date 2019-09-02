@@ -1,0 +1,32 @@
+#+TITLE: ROLLUP
+#+OPTIONS: toc:nil
+
+#+begin_src sql
+CREATE TABLE sales
+(
+    year    INT,
+    country VARCHAR(20),
+    product VARCHAR(32),
+    profit  INT
+);
+
+INSERT INTO sales (year, country, product, profit) VALUES
+    (2000, 'Finland', 'Computer', 500),
+    (2000, 'Finland', 'Computer', 1000),
+    (2000, 'India', 'Calculator', 150),
+    (2000, 'India', 'Computer', 400),
+    (2000, 'Finland', 'Phone', 100),
+    (2001, 'USA', 'Calculator', 50),
+    (2001, 'USA', 'Computer', 2700),
+    (2001, 'USA', 'TV', 1),
+    (2000, 'India', 'Computer', 300),
+    (2000, 'India', 'Computer', 500),
+    (2000, 'USA', 'Calculator', 75),
+    (2000, 'USA', 'Computer', 1500),
+    (2001, 'USA', 'TV', 249),
+    (2001, 'Finland', 'Phone', 10);
+
+SELECT year, country, product, SUM(profit) AS profit
+       FROM sales
+       GROUP BY year, country, product WITH ROLLUP;
+#+end_src
