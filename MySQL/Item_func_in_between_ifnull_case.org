@@ -1,0 +1,41 @@
+#+TITLE: Item func in/between/case/ifnull
+#+OPTIONS: toc:nil
+* Item_func_in
+item_cmp_type don't deal with STRING_RESULT and INT_RESULT
+** Cases
+#+begin_src sql
+create table t1 (
+  a VARCHAR(255)
+);
+
+insert into t1 values ("beijing"), ("shanghai"), ("hangzhou");
+
+select * from t1 where a in ("beijing", "New York", "London");
+
+# Only one collation accepted
+select * from t1 where a in ("beijing", "New York", "London" COLLATE utf8mb4_vi_0900_as_cs);
+
+# With warnings
+select * from t1 where a in ("beijing", "New York", "London", 1);
+
+# Without warnings
+select * from t1 where a in ("beijing", "New York", "London" , 1 COLLATE utf8mb4_vi_0900_as_cs);
+
+# Row
+#+end_src
+
+#+begin_src sql
+CREATE TABLE t1 (
+  col1 VARCHAR(256) CHARACTER SET latin1 COLLATE latin1_german1_ci,
+  col2 VARCHAR(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  col3 INT
+);
+
+INSERT INTO t1 VALUES ("hope", "school", 200);
+
+select * from t1 where col1 in ((select col1 from t1) UNION (select col2 from t1) UNION (select col3 from t1));
+
+select * from t1 where col1 in ((select col1 from t1) UNION (select col2 from t1));
+
+select * from t1 where (col1, col2) in (select col1, col2 from t1);
+#+end_src

@@ -69,22 +69,6 @@ Add current file to agenda file list.
 =C-c ]=
 
 Remove current file from agenda file list.
-
-=<mouse-1>=
-
-Set or clear a breakpoint on that line (gdb-mouse-set-clear-breakpoint).
-
-=<left-margin> <S-mouse-1>=
-
-Enable or disable a breakpoint on that line (gdb-mouse-toggle-breakpoint-margin).
-
-=<left-margin> <S-mouse-3>=
-
-Continue execution to that line (gdb-mouse-until).
-
-=<left-margin> <C-mouse-3>=
-
-Jump to that line (gdb-mouse-jump).
 * Special Text Mark
 *bold*
 /italic/
