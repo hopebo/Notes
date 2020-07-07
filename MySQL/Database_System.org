@@ -136,6 +136,8 @@ WITH cteName (col1, col2) AS (
 SELECT col1 + col2 FROM cteName
 #+end_src
 * 3 Database Storage Part I
+Problem: How the DBMS represents the database in files on disk.
+
 *Query Planning* -> *Operator Execution* -> *Access Methods* -> *Buffer Pool Manager* -> *Disk Manager*
 
 ** 3.1 Access Times
@@ -207,104 +209,429 @@ The directory also records the number of free slots per page.
 
 The DBMS has to make sure the directory pages are in sync with the data pages.
 *** 3.5.2 Page Layout
-Every page contains a header of metadata about the page's contents.
+**** 3.5.2.1 Page Header
+Every page contains a header of meta-data about the page's contents.
 - Page Size
 - Checksum
 - DBMS Version
 - Transaction Visibility
 - Compression Information
-
-We have two approaches to organize the datas inside the page:
-- Tuple-oriented
-- Log-structured
-
-**** 3.5.2.1 Slotted Pages
-The most common layout scheme is called slotted pages.
-
-The slot array maps "slots" to the tuples starting position offsets.
+**** 3.5.2.2 Page Layout
+***** 3.5.2.2.1 Tuple-oriented
+The most common layout scheme is called slotted pages. The slot array maps "slots" to the tuples' starting position offsets.
 
 The header keeps track of:
 - The # of used slots
 - The offset of the starting location of the last slot used.
-
-**** 3.5.2.2 Log-structured File Organization
+***** 3.5.2.2.2 Log-structured
 Instead of storing tuples in pages, the DBMS only stores log records.
 
 The system appends log records to the file of how the database was modified:
-- Insert stores the entire tuple.
-- Delete marks the tuple as deleted.
-- Update contains the delta of just the attributes that were modified.
+- Inserts store the entire tuple.
+- Deletes mark the tuple as deleted.
+- Updates contain the delta of just the attributes that were modified.
 
 To read a record, the DBMS scans the log backwards and "recreates" the tuple to find what it needs.
 
 Build indexes to allow it to jump to locations in the log.
 
-Periodically compact the log. Compaction coalesces larger log files into smaller files by removing unnecessary records.
+Periodically compacting the logs coalesces larger log files into smaller files by removing unnecessary records.
+
 *** 3.5.3 Tuple Layout
-A tuple is essentially a sequence of bytes.
+A tuple is essentially a sequence of bytes. It's the job of DBMS to interpret those bytes into attribute type and values.
 
-It's the job of DBMS to interpret those bytes into attribute types and values.
-
-Each tuple is prefixed with a header that contains metadata about it.
+Each tuple is prefixed with a header that contains meta-data about it.
 - Visibility info (concurrency control)
-- Bit Map for NULL values
-
-We do not need to store metadata about the schema.
+- Bit Map for NULL values.
 
 Attributes are typically stored in the order that you specify them when you create the table.
 
-**** 3.5.3.1 Denormalized Tuple Data
 Can physically denormalize (e.g., "pre-join") related tuples and store them together in the same page.
 - Potentially reduces the amount of I/O for common workload patterns.
 - Can make updates more expensive.
-**** 3.5.3.2 Record IDs
+
+**** 3.5.3.1 Record IDs
 The DBMS needs a way to keep track of individual tuples.
 
 Each tuple is assigned a unique record identifier.
-- Most common: page_id + offset/slot
+- Most common: page_id + offset/slot.
 - Can also contain file location info.
-* Tree Indexes
-** Table Indexes
+* 4 Database Storage Part II
+The DBMS assumes that the primary storage location of the database is on non-volatile disk.
+
+The DBMS's components manage the movement of data between non-volatile and volatile storage.
+** 4.1 Data Representation
+A tuple is essentially a sequence of bytes. It's the job of the DBMS to interpret those bytes into attribute types and values.
+
+The DBMS's catalogs contain the schema information about tables that the system uses to figure out the tuple's layout.
+*** 4.1.1 Data Types
+INTEGER/BIGINT/SMALLINT/TINYINT
+- C/C++ Representation
+
+FLOAT/REAL vs. NUMERIC/DECIMAL
+- IEEE-754 Standard / Fixed-point Decimals
+
+VARCHAR/VARBINARY/TEXT/BLOB
+- Header with length, followed by data bytes.
+
+TIME/DATE/TIMESTAMP
+- 32/64-bit integer of (micro) seconds since Unix epoch.
+
+**** 4.1.1.1 Variable Precision Numbers
+Inexact, variable-precision numeric type that uses the "native" C/C++ types. Store directly as specified by IEEE-754.
+
+Typically faster than arbitary precision numbers.
+**** 4.1.1.2 Fixed Precision Numbers
+Numeric data types with arbitary precision and scale. Used when round errors are unacceptable.
+- Example: NUMERIC, DECIMAL.
+
+Typically stored in a exact, variable-length binary representation with additional meta-data.
+- Like a VARCHAR but not stored as a string.
+**** 4.1.1.3 Large Values
+Most DBMSs don't allow a tuple to exceed the size of a single page.
+
+To store values that are larger than a page, the DBMS uses separate overflow storage pages.
+**** 4.1.1.4 External Value Storage
+Some systems allow you to store a really large value in an external file. Treated as a BLOB type.
+
+The DBMS cannot manipulate the contents of an external file.
+- No durability protections.
+- No transaction protections.
+
+** 4.2 System Catalogs
+A DBMS stores meta-data about databases in its internal catalogs.
+- Table, columns, indexes, views
+- Users, permissions
+- Internal statistics
+
+Almost every DBMS stores their databases' catalog in itself.
+- Wrap object abstraction around tuples.
+- Specialized code for "bootstrapping" catalog tables.
+
+You can query the DBMS's internal INFORMATION_SCHEMA catalog to get info about the database.
+- ANSI standard set of read-only views that provide info about all of the tables, views, columns, and procedures in a database.
+** 4.3 Storage Models
+*** 4.3.1 Workloads
+On-line Transaction Processing:
+- Simple queries that read/update a small amount of data that is related to a single entity in the database.
+
+On-line Analytical Processing:
+- Complex queries that read large portions of the database spanning multiple entities.
+
+The DBMS can store tuples in different ways that are better for either OLTP or OLAP workloads.
+*** 4.3.2 N-ary Storage Model (NSM)
+Also known as row storage. The DBMS stores all attributes for a single tuple contiguously in a page.
+
+Ideal for OLTP workloads where queries tend to operate only on an individual entity and insert-heavy workloads.
+
+Advantages:
+- Fast inserts, updates, and deletes.
+- Good for queries that need the entire tuple.
+
+Disadvantages:
+- Not good for scanning large portions of the table and/or a subset of the attributes.
+*** 4.3.3 Decomposition Storage Model (DSM)
+Also known as column store. The DBMS stores the values of a single attribute for all tuples contiguously in a page.
+
+Ideal for OLAP workloads where read-only queries perform large scans over a subset of the table's attributes.
+
+Tuple Identifications:
+- Fixed-length Offsets. Each value is the same length for an attribute.
+- Embedded Tuple Ids. Each value is stored with its tuple id in a column.
+
+Advantages:
+- Reduces the amount wasted I/O because the DBMS only reads the data it needs.
+- Better query processing and data compression.
+
+Disadvantages:
+- Slow for point queries, inserts, updates, and deletes because of tuple splitting/stitching.
+* 5 Buffer Pools
+Problem: How the DBMS manages its memory and move data back-and-forth from disk.
+
+Spatial Control:
+- Where to write pages on disk.
+- The goal is to keep pages that are used together often as physically close together as possible on disk.
+
+Temporal Control:
+- When to read pages into memory, and when to write them to disk.
+- The goal is minimize the number of stalls from having to read data from disk.
+** 5.1 Buffer Pool Manager
+*** 5.1.1 Buffer Pool Organization
+Memory region organized as an array of fixed-size pages. An array entry is called a frame.
+
+When the DBMS requests a page, an exact copy is placed into one of these frames.
+*** 5.1.2 Buffer Pool Meta-data
+The page table keeps track of pages that are currently in the memory.
+
+Also maintains additional meta-data per page:
+- Dirty Flag
+- Pin/Reference Counter
+*** 5.1.3 Locks VS. Latches
+Locks:
+- Protects the database's logical contents from other transactions.
+- Held for transaction duration.
+- Need to be able to rollback changes.
+
+Latches (Mutex):
+- Protects the critical sections of the DBMS's internal data structure from other threads.
+- Held for operation duration.
+- Do not need to be able to rollback changes.
+*** 5.1.4 Page Table VS. Page Directory
+The page directory is the mapping from page ids to page locations in the database files.
+- All changes must be recorded on disk to allow the DBMS to find on restart.
+
+The page table is the mapping from page ids to a copy of the page in buffer pool frames.
+- This is an in-memory data structure that does not need to be stored on disk.
+*** 5.1.5 Multiple Buffer Pools
+The DBMS does not always have a single buffer pool for the entire system.
+- Multiple buffer pool instances
+- Per-database buffer pool
+- Per-page type buffer pool
+
+Helps reduce latch contention and improve locality.
+*** 5.1.6 Pre-fetching and Scan Sharing
+**** 5.1.6.1 Pre-fetching
+The DBMS can also prefetch pages based on a query plan.
+- Sequential Scans
+- Index Scans
+**** 5.1.6.2 Scan Sharing
+Queries are able to reuse data retrieved from storage or operator computations.
+- This is different from result caching.
+
+Allow multiple queries to attach to a single cursor that scans a table.
+- Queries do not have to be exactly the same.
+- Can also share intermediate results.
+
+If a query starts a scan and if there one already doing this, then the DBMS will attach to the second query's cursor.
+- The DBMS keeps track of where the second query joined with the first so that it can finish the scan when it reaches the end of the data structure.
+
+*** 5.1.7 OS Page Cache
+Most disk operations go through the OS API. Unless you tell it not to, the OS maintains its own filesystem cache.
+
+Most DBMSs use direct I/O (O_DIRECT) to bypass the OS's cache.
+- Redundant copies of pages.
+- Different eviction policies.
+** 5.2 Buffer Replacement Policies
+When the DBMS needs to free up a frame to make room for a new page, it must decide which page to evict from the buffer pool.
+
+Goals:
+- Correctness
+- Accuracy
+- Speed
+- Meta-data overhead
+*** 5.2.1 Least Recently Used
+Maintain a timestamp of when each page was last accessed. When the DBMS needs to evict a page, select the one with oldest timestamp.
+- Keep the pages in sorted order to reduce the search time on eviction.
+*** 5.2.2 Clock
+Approximation of LRU without needing a separate timestamp per page.
+- Each page has a reference bit.
+- When a page is accessed, set to 1.
+
+Organize the pages in a circular buffer with a "clock hand":
+- Upon sweeping, check if a page's bit is set to 1.
+- If yes, set to zero. If no, then evict.
+
+Problems:
+
+LRU and Clock replacement policies are susceptible to sequential flooding.
+- A query performs a sequential scan that reads every page.
+- This pollutes the buffer pool with pages that are read once and then never again.
+
+The most recently used page is actually the most unneeded page.
+*** 5.2.3 Better Policies: LRU-K
+Take into account history of the last K references as timestamps and compute the interval between subsequent accesses.
+
+The DBMS then uses this history to estimate the next time that page is going to be accessed.
+*** 5.2.4 Better Policies: Localization
+The DBMS chooses which pages to evict on a per txn/query basis. This minimizes the pollution of the buffer pool from each query.
+- Keep track of the pages that a query has accessed.
+*** 5.2.5 Better Policies: Priority Hints
+The DBMS knows what the context of each page during query execution.
+
+It can provide hints to the buffer pool on whether a page is important or not.
+** 5.3 Dirty Pages
+FAST: If a page in the buffer pool is not dirty, then the DBMS can simply "drop" it.
+
+SLOW: If a page is dirty, then the DBMS must write back to disk to ensure that its changes are persisted.
+
+Trade-off between fast evictions versus dirty writing pages that will not be read again in the future.
+*** 5.3.1 Background Writing
+The DBMS can periodically walk through the page table and write dirty pages to disk.
+
+When a dirty page is safely written, the DBMS can either evict the page or just unset the dirty flag.
+
+Need to be careful that we don't write dirty pages before their log records have been written.
+** 5.4 Allocation Policies
+Global Policies:
+- Make decisions for all active txns.
+
+Local Policies:
+- Allocate frames to a specific txn without considering the behavior of concurrent txns.
+- Still need to support sharing pages.
+** 5.5 Other Memory Pools
+The DBMS needs memory for things other than just tuples and indexes.
+
+These other memory pools may not always backed by disk. Depends on implementation.
+- Sorting + Join Buffers
+- Query Caches
+- Maintenance Buffers
+- Log Buffers
+- Dictionary Caches
+* 6 Hash Tables
+Design Decisions:
+
+Data Organization
+- How we layout data structure in memory/pages and what information to store to support efficient access.
+
+Concurrency
+- How to enable multiple threads to access the data structure at the same time without causing problems.
+
+A hash table implements an associative array abstract data type that maps keys to values.
+
+It use a hash function to compute an offset into the array, from which the desired value can be found.
+** 6.1 Hash Table
+Design Decision #1: Hash Function
+- How to map a large key space into a smaller domain.
+- Trade-off between being fast vs. collision rate.
+
+Design Decision #2: Hashing Scheme
+- How to handle key collision after hashing.
+- Trade-off between allocating a large hash table vs. additional instructions to find/insert keys.
+** 6.2 Hash Functions
+MurmurHash(2008)
+- Designed to a fast, general purpose hash function.
+
+Google CityHash(2011)
+- Based on ideas from MurmurHash2
+- Designed to be faster for short keys (<64 bytes).
+
+Google FarmHash(2014)
+- Newer version of CityHash with better collision rates.
+
+CLHash(2016)
+- Fast hashing function based on carry-less multiplication.
+** 6.3 Hash Schemes
+*** 6.3.1 Static Hashing Schemes
+**** 6.3.1.1 Linear Probe Hasing
+Single gaint table of slots.
+
+Resolve collisions by linearly searching for the next free slot in the table.
+- To determine whether an element is present, hash to a location in the index and scan for it.
+- Have to store the key in the index to know when to stop scanning.
+- Insertions and deletions are generalizations of lookups.
+***** 6.3.1.1.1 Non-unique Keys
+Choice #1: Separate Linked List
+- Store values in separate storage area for each key.
+
+Choice #2: Redundant Keys
+- Store duplicate keys entries together in the hash table.
+***** 6.3.1.1.2 Observation
+To reduce the # of wasteful comparisons, it is important to avoid collisions of hashed keys.
+
+This requires a hash table with ~2x the number of slots as the number of elements.
+**** 6.3.1.2 Robin Hood Hashing
+Variant of linear hashing that steals slots from "rich" keys and give them to "poor" keys.
+- Each key tracks the number of positions they are from where its optimal position in the table.
+- On insert, a key take the slot of another key if the first key is farther away from its optimal position than the second key.
+**** 6.3.1.3 Cuckoo Hashing
+Use multiple hash tables with different hash functions.
+- On insert, check every table and pick anyone that has a free slot.
+- If no table has a free slot, evict the element from one of them and then re-hash it find a new location.
+
+Look-ups and deletions are always O(1) because only one location per hash table is checked.
+
+Make sure that we don't get stuck in an infinite loop when moving keys.
+
+If we find a cycle, then we can rebuild the entire hash tables with new hash functions.
+- With two hash functions, we (probably) won't need to rebuild the table until it is at about 50% full.
+- With three hash functions, we (probably) won't need to rebuild the table until it is at about 90% full.
+*** 6.3.2 Daynamic Hashing Schemes
+The previous hash tables require knowing the number of elements you want to store ahead of time.
+- Otherwise you have rebuild the entire table if you need to grow/shrink.
+
+Dynamic hash tables are able to grow/shrink on demand.
+**** 6.3.2.1 Chained Hashing
+Maintain a linked list of buckets for each slot in the hash table.
+
+Resolve collisions by placing all elements with the same hash key into the same bucket.
+- To determine whether an element is present, hash to its bucket and scan for it.
+- Insertions and deletions are generalizations of lookups.
+
+The hash table can grow infinitely because you just keep adding new buckets to the linked list.
+
+You only need to take a latch on the bucket to store a new entry or extend the linked list.
+**** 6.3.2.2 Extendible Hashing
+Chained-hashing approach where we split buckets instead of letting the linked list grow forever.
+
+This requires reshuffling entries on split, but the change is localized.
+**** 6.3.2.3 Linear Hashing
+Maintain a pointer that tracks the next bucket to split.
+
+When any bucket overflow, split the bucket at the pointer location.
+
+Overflow criterion is left up to the implementation.
+- Space Utilization
+- Average Length of Overflow Chains
+
+Splitting buckets based on the split pointer will eventually get to all overflowed buckets.
+- When the pointer reaches the last slot, delete the first hash function and move back to beginning.
+
+The pointer can also move backwards when buckets are empty.
+** 6.4 Conclusion
+Fast data structures that support O(1) look-ups that are used all throughout the DBMS internals.
+- Trade-off between speed and flexibility.
+
+Hash tables are usually not what you want to for a table index.
+* 7 Tree Indexes Part I
+** 7.1 Table Indexes
 A table index is a replica of a subset of a table's columns that are organized and/or sorted for efficient access using a subset of those columns.
-** B+ tree
-*** Properties
+
+The DBMS ensures that the contents of the table and the index are logically in sync.
+
+It's the DBMS's job to figure out the best index(es) to use to execute each query.
+
+There is a trade-off on the number of indexes to create per database.
+- Storage Overhead
+- Maintenance Overhead
+** 7.2 B+ Tree
+A B+ Tree is a self-balancing tree data structure that keeps data sorted and allows searches, sequential access, insertions, and deletions in O(log n).
+- Generalization of a binary search tree in that a node can have more than two children.
+- Optimized for systems that read and write large blocks of data.
+*** 7.2.1 Properties
 A B+tree is an M-way(M is maximum number of keys you can have in a single node)search tree with the following properties:
 
 - It is perfectly balanced (i.e., every leaf node is at the same depth).
 - Every inner node other than the root, is at least half-full M/2-1 <= #keys <= M-1
 - Every inner node with k keys has k+1 non-null children.
-*** B+ tree nodes
+*** 7.2.2 B+ Tree Nodes
 Every node in the B+tree contains an array of key/value pairs.
-
 - The keys will always be the column or columns that you built your index on.
 - The values will differ based on whether the node is classified as inner nodes(pointer to another inner node or leaf node) or leaf nodes(record id or the tuple of contents).
 
 The arrays are always kept in sorted order. When you load on a node, you do a binary search.
-
-**** Leaf node values
+**** 7.2.2.1 Leaf Node Values
 Approach #1: Record Ids
-
 - A pointer to the location of the tuple that the index entry corresponds to.
 
 Approach #2: Tuple Data
-
 - The actual contents of the tuple is stored in the leaf node.
-- Secondly indexes have to store the record id as their values.
+- Secondary indexes have to store the record id as their values.
 - Typically it's used for primary key.
 
 The size of B+tree node is usally the size of page. The sibling pointers are not pointing to memories, instead page ids. Because database need to go to the page table to fetch the page.
+**** 7.2.2.2 Type
+Clustered B+ tree
+- The sorted tuples are stored sequentially in the same page.
 
-**** Type
-- Clustered B+ tree
+Unclustered B+ tree
+- The tuples in leaf nodes are distributed in different pages.
+**** 7.2.2.3 B Tree VS. B+ Tree
+The original B Tree from 1972 stored keys + values in all nodes in the tree.
+- More space efficient since each key only appears once in the tree.
 
-The sorted tuples are stored sequentially in the same page.
-
-- Unclustered B+ tree
-
-The tuples in leaf nodes are distributed in different pages.
-
-** Operations
-*** Insert
+A B+ Tree only stores values in leaf nodes. Inner nodes only guide the search process.
+** 7.3 Operations
+*** 7.3.1 Insert
 Find correct leaf L.
 
 Put data entry into L in sorted order.
@@ -314,8 +641,7 @@ Put data entry into L in sorted order.
   - Insert index entry pointing to L2 into parent of L.
 
 To split inner node, redistribute entries evenly, but push up middle key.
-
-*** Delete
+*** 7.3.2 Delete
 Start at root, find leaf L where entry belongs.
 
 Remove the entry.
@@ -325,39 +651,135 @@ Remove the entry.
   - If re-distribution fails, merge L and sibling.
 
 If merge occurred, must delete entry(pointing to L or sibling) from parent of L.
+*** 7.3.3 B+ Tree Visualization
+https://cmudb.io/btree
+** 7.4 Clustered Indexes
+The table is stored in the sort order specified by the primary key.
+- Can be either heap- or index-organized storage.
 
-** Problems
-*** Non-unique indexes
+Some DBMSs always use a clustered index.
+- If a table doesn't include a pkey, the DBMS will automatically make a hidden row id key.
+
+Other DBMSs cannot use them at all.
+** 7.5 Selection Conditions
+The DBMS can use a B+ Tree index if the query provides any of the attributes of the search key.
+
+Example: Index on <a, b, c>
+- Supported: (a=5 AND b=3)
+- Supported: (b=3).
+
+Not all DBMSs support this.
+
+For hash index, we must have all attributes in search key.
+** 7.6 B+ Tree Design Choices
+*** 7.6.1 Node Size
+The slower the disk, the larger the optimal node size for B+ Tree.
+- HDD: ~1MB
+- SSD: ~10KB
+- In-Memory: ~512B
+
+Optimal sizes can vary depending on the workload
+- Leaf Node Scans vs. Root-to-Leaf Traversals.
+*** 7.6.2 Merge Threshold
+Some DBMSs don't always merge nodes when it is half full.
+
+Delaying a merge operation may reduce the amount of reorganization.
+
+May be better to just let underflows to exist and then periodically rebuild entire tree.
+*** 7.6.3 Variable Length Keys
+Approach #1: Pointers
+- Store the keys as pointers to the tuple's attribute.
+
+Approach #2: Variable Length Nodes
+- The size of each node in the B+ Tree can vary.
+- Requires careful memory management.
+
+Approach #3: Key Map
+- Embed an array of pointers that map to the key + value list within the node.
+*** 7.6.4 Non-unique Indexes
 Approach #1: Duplicate Keys
-
 - Use the same leaf node layout but store duplicate keys multiple times.
 
 Approach #2: Value Lists
-
 - Store each key only once and maintain a linked list of unique values.
+*** 7.6.5 Intra-node Search
+Approach #1: Linear
+- Scan node keys from beginning to end.
 
-*** Variable length keys
-Approach #1: Pointers
+Approach #2: Binary
+- Jump to middle key, pivot left/right depending on comparsion.
 
-- Store the keys as pointers to the tuple's attribute. (rare)
+Approach #3: Interpolation
+- Approaximate location of desired key based on known distribution of keys.
 
-Approach #2: Variable length nodes
+** 7.7 Optimizations
+*** 7.7.1 Prefix Compression
+Stored keys in the same leaf node are likely to have the same prefix.
 
-- The size of each node in B+tree can vary.
-- Requires careful memory management.
+Instead of storing the entire key each time, extract common prefix and store only unique suffix for each key.
+- Many variations.
+*** 7.7.2 Suffix Truncation
+The keys in the inner nodes are only used to "direct traffic".
+- We don't actually need the entire key.
 
-Approach #3: Key map
+Store a minimum prefix that is needed to correctly route probes into the index.
+*** 7.7.3 Bulk Insert
+The fastest/best way to build a B+ Tree is to first sort the keys and then build the index from the bottom up.
+*** 7.7.4 Pointer Swizzling
+Nodes use page ids to reference other nodes in the index. The DBMS has to get the memory location from the page table during travesal.
 
-- Embed an array of pointers that map to the key + value list within the node.
-** Partial indexes
+If a page is pinned in the buffer pool, then we can store raw pointers instead of page ids, thereby removing the need to get address from the page table.
+* 8 Tree Indexes Part II
+** 8.1 Additional Index Usage
+*** 8.1.1 Implicit Indexes
+Most DBMSs automatically create an index to enforce integrity constraints.
+- Primary Keys
+- Unique Constraints
+- Foreign Keys
+*** 8.1.2 Partial Indexes
 Create an index on subset of entire table. This potentially reduces the size of indexes and the amount of overhead to maintain it.
-** Covering indexes
-If all of the fields needed to process the query are available in an index, then the DBMS doesn't need to retrieve the whole tuple. This reduces contention on DBMS's buffer pool resources.
-** Index include columns
+
+One common use case is to partition indexes by date ranges.
+- Create a separate index per month, year.
+
+#+begin_src sql
+CREATE INDEX idx_foo
+          ON foo (a, b)
+       WHERE c = 'WuTang';
+#+end_src
+*** 8.1.3 Covering Indexes
+If all of the fields needed to process the query are available in an index, then the DBMS doesn't need to retrieve the whole tuple.
+
+This reduces contention on DBMS's buffer pool resources.
+
+#+begin_src sql
+CREATE INDEX idx_foo
+          ON foo (a, b);
+
+SELECT b FROM foo
+ WHERE a = 123;
+#+end_src
+*** 8.1.4 Index Include Columns
 Embed addtional columns in indexes to support index-only queries. Not a part of search key. This stores addtional columns in leaf node.
-** Functional/expression indexes
-The index does not need to store keys in the same way that they appear in their base table. You can use expressions when declaring an index.
-** Skip lists
+
+#+begin_src sql
+CREATE INDEX idx_foo
+          ON foo (a, b)
+     INCLUDE (c);
+#+end_src
+*** 8.1.5 Functional/Expression Indexes
+The index does not need to store keys in the same way that they appear in their base table.
+
+You can use expressions when declaring an index.
+
+#+begin_src sql
+CREATE INDEX idx_user_login
+    ON users (EXTRACT(dow FROM login));
+
+SELECT * FROM users
+ WHERE EXTRACT(dow FROM login) = 2;
+#+end_src
+** 8.2 Skip Lists
 Multiple levels of linked lists with extra pointers that skip over intermediate nodes. Maintain keys in sorted order without requiring global rebalancing.
 
 A collection of lists at different levels
@@ -367,18 +789,114 @@ A collection of lists at different levels
 - In general, a level has half the keys of one below it.
 
 To insert a key, flip a coin to decide how many levels to add the new key into. Provides approximately O(log n) search time complexity.
-** Radix tree
+
+Advantages:
+- Uses less memory than a typical B+ Tree if you don't include reverse pointers.
+- Insertions and deletions do not require rebalancing.
+
+Disadvantages:
+- Not disk/cache friendly because they do not optimize locality of references.
+- Reverse search is non-trivial.
+** 8.3 Radix tree
 Represent keys as individual digits. This allow threads to examine prefix one-by-one instead of comparing entire key.
 - The height of the tree depends on the length of the key.
 - Does not require rebalancing.
 - The path to a leaf node represents the key of the leaf.
 - Keys are stored implicitly and can be reconstructed from paths.
-* Query processing
-** Query plan
+*** 8.3.1 Radix Tree: Binary Comparable Keys
+Not all attribute types can be composed into binary comparable digits for a radix tree.
+- Unsigned Integers: Byte order must be flipped for little endian machines.
+- Signed Integers: Flip two's-complement so that negative numbers are smaller than positive.
+- Floats: Classify into group (neg vs. pos, normalized vs. denormalized), then store as unsigned integer.
+- Compound: Transform each attribute separately.
+** 8.4 Inverted Index
+An inverted index stores a mapping of words to records that contain those words in the target attribute.
+- Sometimes called a full-text search index.
+* 9 Index Concurrency Control
+A concurrency control protocol is the method that the DBMS uses to ensure "correct" results for concurrent operations on a shard object.
+** 9.1 Locks VS. Latches
+Locks
+- Protects the index's logical contents from other txns.
+- Held for txn duration.
+- Need to be able to rollback changes.
+
+Latches
+- Protects the critical sections of the index's internal data structure from other threads.
+- Held for operation duration.
+- Do not need to be able to rollback changes.
+
+|          | Locks                                | Latches                   |
+|----------+--------------------------------------+---------------------------|
+| Separate | User transaction                     | Threads                   |
+| Protect  | Database Contents                    | In-Memory Data Structures |
+| During   | Entire Transactions                  | Critical Sections         |
+| Modes    | Shared, Exclusive, Update, Intention | Read, Write               |
+| Deadlock | Detection & Resolution               | Avoidance                 |
+| by       | Waits-for, Timeout, Aborts           | Coding Discipline         |
+| Kept in  | Lock Manager                         | Protected Data Structure  |
+
+Read Mode
+- Multiple threads are allowed to read the same item at the same time.
+- A thread can acquire the read latch if another thread has it in read mode.
+
+Write Mode
+- Only one thread is allowed to access the item.
+- A thread cannot acquire a write latch is another thread holds the latch in any mode.
+** 9.2 B+ Tree Concurrency Control
+We want to allow multiple threads to read and update a B+ tree at the same time.
+
+We need to protect from two types of problems:
+- Threads trying to modify the contents of a node at the same time.
+- One thread traversing the tree while another thread splits/merges nodes.
+*** 9.2.1 Latch Crabbing/Coupling
+Protocol to allow multiple threads to access/modify B+ Tree at the same time.
+
+Basic Idea:
+- Get latch for parent.
+- Get latch for child.
+- Release latch for parent if "safe".
+
+A safe node is one that will not split or merge when updated.
+- Not full (on insertion)
+- More than half-full (on deletion)
+
+Search: Start at root and go down; repeatedly,
+- Acquire R latch on child
+- Then unlatch parent
+
+Insert/Delete: Start at root and go down, obtaining W latches as needed. Once child is latched, check if it is safe:
+- If child is safe, release all latches on ancestors.
+*** 9.2.2 Better Latching Algorithm
+Assume that the leaf node is safe.
+
+Use read latches and crabbing to reach it, and verify that it is safe.
+
+If leaf is not safe, then do previous algorithm using write latches.
+
+Search: Same as before.
+
+Insert/Delete:
+- Set latches as if for search, get to leaf, and set W latch on leaf.
+- If leaf is not safe, release all latches, and restart thread using the previous insert/delete protocol with write latches.
+
+This approach optimistically assumes that only leaf node will be modified; if not, R latches set on the first pass to leaf are wasteful.
+*** 9.2.3 Leaf Node Scans
+Latches do not support deadlock detection or avoidance. The only way we can deal with this problem is through coding discipline.
+
+The leaf node sibling latch acquisition protocol must support a "no-wait" mode. B+ tree code must cope with failed latch acquisitions.
+*** 9.2.4 Delayed Parent Updates
+Every time a leaf node overflows, we have to update at least three nodes.
+- The leaf node being split.
+- The new leaf node being created.
+- The parent node.
+
+Blink Tree Optimization: When a leaf node overflows, delay updating its parent node.
+* 10 Query Processing
+** 10.1 Query Plan
 The operators are arranged in a tree. Data flows from the leaves toward the root.
 
 The ouput of the root node is the result of the query.
-** Processing model
+** 10.2 Processing Model
 A DBMS's processing model defines how the system executes a query plan.
 - Different trade-offs for different workloads.
 
@@ -387,10 +905,12 @@ Three approaches:
 - Materialization model
 - Vectorized / Batch model
 
-*** Iterator model
+*** 10.2.1 Iterator Model
 Each query plan operator implements a next function.
 - On each invocation, the operator returns either a single tuple or a null marker if there are no more tuples.
 - The operator implements a loop that calls next on its children to retrieve their tuples and then process them.
+
+Top-down plan processing. Also called Volcano or Pipeline Model.
 
 This is used in almost every DBMS. Allows for tuple pipelining.
 
@@ -399,22 +919,34 @@ Some operators will block until children emit all of their tuples.
 
 Output control works easily with this approach.
 - Limit.
-
-*** Materialization model
+*** 10.2.2 Materialization Model
 Each operator processes its input all at once and then emits its output all at once.
 - The operator "materializes" its output as a single result.
 - The DBMS can push down hints into to avoid scanning too many tuples.
 
 Bottom-up plan processing.
 
-*** Vectorization model
+Better for OLTP workloads because queries typically only access a small number of tuples at a time.
+- Lower execution / coordination overhead.
+
+Not good for OLAP queries with large intermediate results.
+*** 10.2.3 Vectorization Model
 Like iterator model, each operator implements a next function.
 
 Each operator emits a batch of tuples instead of a single tuple.
 - The operator's internal loop processes multiple tuples at a time.
 - The size of batch can vary based on hardware or query properties.
 
-** Access method
+Ideal for OLAP queries
+- Greatly reduces the number of invocations per operator.
+- Allows for operators to use vectorized (SIMD) instructions to process batches of tuples.
+*** 10.2.4 Summary
+|           | Iterator/Volcano | Vectorized  | Materialization  |
+|-----------+------------------+-------------+------------------|
+| Direction | Top-Down         | Top-Down    | Bottom-Up        |
+| Emits     | Single Tuple     | Tuple Batch | Entire Tuple Set |
+| Target    | General Purpose  | OLAP        | OLTP             |
+** 10.3 Access Methods
 An access method is a way that the DBMS can access the data stored in a table.
 - Not defined in relational algebra.
 
@@ -422,30 +954,100 @@ Three basic approaches:
 - Sequential scan.
 - Index scan.
 - Multi-index / "Bitmap" scan.
-
-*** Sequential scan
+*** 10.3.1 Sequential Scan
 For each page in the table:
 - Retrieve it from the buffer pool.
 - Iterate over each tuple and check whether to include it.
 
 The DBMS maintains an internal cursor that tracks the last page / slot it examined.
 
-**** Optimizations
 This is almost the worst thing that the DBMS can do to execute a query.
 
 Sequential scan optimizations:
 - Prefetching
 - Parallelization
 - Buffer pool bypass
-- Zone mapsp
+- Zone maps
 - Late materialization
 - Heap clustering
+**** 10.3.1.1 Zone Maps
+Pre-computed aggregates for the attribute values in a page. DBMS checks the zone map first to decide whether it wants to access the page.
+**** 10.3.1.2 Late Materialization
+DSM DBMSs can delay stitching together tuples until the upper parts of the query plan.
+**** 10.3.1.3 Heap Clustering
+Tuples are sorted in the heap's pages using the order specified by a clustering index.
 
-** Expression evaluation
+If the query accesses tuples using the clustering index's attributes, then the DBMS can jump directly to the pages that it needs.
+*** 10.3.2 Index Scan
+The DBMS picks an index to find the tuples that the query needs.
+
+Which index to use depends on:
+- What attributes the index contains
+- What attributes the query references
+- The attribute's value domains
+- Predicate composition
+- Whether the index has unique or non-unique keys
+*** 10.3.3 Multi-index Scan
+If there are multiple indexes that the DBMS can use for a query:
+- Compute sets of record ids using each matching index.
+- Combine these sets based on the query's predicates (union vs. intersect).
+- Retrieve the records and apply any remaining terms.
+
+Set intersection can be done with bitmaps, hash tables, or Bloom filters.
+** 10.4 Index Scan Page Sorting
+Retrieving tuples in the order that appear in an unclustered index is inefficient.
+
+The DBMS can first figure out all the tuples that it needs and then sort them based on their page id.
+** 10.5 Expression evaluation
 The DBMS represents a WHERE clause as an expression tree.
-* Sorting & Aggregation algorithms
-** Sorting
-- External merge sort
+
+The nodes in the tree represent different expression types:
+- Comparisons (= , < , > , !=)
+- Conjunction (AND), Disjunction (OR)
+- Arithmetic Operators (+, -, *, /, %)
+- Constant Values
+- Tuple Attribute References
+
+To evaluate an expression tree at runtime, the DBMS maintains a context handle that contains metadata for the execution, such as the current tuple, the parameters, the parameters, and the table schema. The DBMS then walks the tree to evaluate its operators and produce a result.
+* 11 Sorting & Aggregations
+Why do we need to sort?
+
+Tuples in a table have no specific order.
+
+But users often want to retrieve tuples in a specific order.
+- Trivial to support duplicate elimination (DISTINCT)
+- Bulk loading sorted tuples into a B+ tree index is faster
+- Aggregations (GROUP BY)
+** 11.1 Sorting Algorithms
+*** 11.1.1 External Merge Sort
+Sorting Phase
+- Sort small chunks of data that fit in main-memory, and then write back the sorted data to a file on disk.
+
+Merge Phase
+- Combine sorted sub-files into a single larger file.
+
+Files are broken up into N pages. The DBMS has a finite number of B fixed-size buffers.
+**** 11.1.1.1 Two-way External Merge Sort
+Pass #0
+- Read every B pages of the table into memory.
+- Sorts them, and write them back to disk.
+- Each sorted set of pages is called a run.
+
+Pass #1,2,3,...
+- Recursively merges pairs of runs into runs twice as long.
+- Use three buffer pages (2 for input pages, 1 for output).
+**** 11.1.1.2 General External Merge Sort
+Pass #0
+- Use B buffer pages.
+- Produce ceiling(N/B) sorted runs of size B
+
+Pass #1,2,3,...
+- Merge B-1 runs (i.e. K-way merge)
+
+Number of passes = 1 + logB-1(ceiling(N/B))
+
+a_{1}
+
 - Use B+ tree
   - Good for clustered B+ tree
   - For unclustered B+ tree, this is almost always a bad idea. In general, one I/O per data record. The DBMS will choose the best one for us. Whether to use index, or do external merge sort.
