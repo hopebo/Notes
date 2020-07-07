@@ -149,3 +149,5 @@ Using =cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON <...>= to generate =compile_comm
 =M-x toggle-debug-on-quit=
 
 Press =C-g= to enter Lisp debugger.
+** 查看二进制文件
+M-x hexl-mode

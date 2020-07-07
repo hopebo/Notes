@@ -1,0 +1,5 @@
+#+TITLE: gdb convenient commands on mysql
+#+OPTIONS: toc:nil
+
+- p *((Item_field *)value)->field
+看字符串类型Item_field的值

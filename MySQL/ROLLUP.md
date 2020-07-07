@@ -106,7 +106,7 @@ SELECT year, country, product, SUM(profit) AS profit
 
 ​	以上是 ROLLUP 的功能、用法、使用场景介绍的部分，接下来将会对 ROLLUP 的内核实现进行介绍，分为优化器和执行器两部分。
 
-##2 内核实现
+## 2 内核实现
 
 ### 2.1 优化器
 
@@ -186,7 +186,7 @@ SELECT year, country, product, SUM(profit) AS profit
 
 - SELECT_LEX::resolve_rollup 解析 rollup 过程中的 items。
 
-##4 参考资料
+## 4 参考资料
 
 [MySQL 官方文档](https://dev.mysql.com/doc/refman/8.0/en/group-by-modifiers.html)
 
