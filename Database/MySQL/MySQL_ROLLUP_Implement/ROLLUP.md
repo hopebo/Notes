@@ -128,11 +128,11 @@ SELECT year, country, product, SUM(profit) AS profit
 
 ​	优化器对 ROLLUP 第二个阶段的操作是对数据结构进行初始化(`JOIN::rollup_make_fields`)，对 ROLLUP 输出的聚合列指向用于表示 ROLLUP 聚合的 Item(`Item_null_result`)，非聚合列对应的 Item 进行拷贝。
 
-![materials/rollup_memory.png](materials/rollup_memory.png)
+![images/rollup_memory.png](images/rollup_memory.png)
 
 ​	同时也对聚合函数的 Item(`Item::SUM_FUNC_ITEM`)进行拷贝，通过 sum_funcs 和 sum_funcs_end 的指向，来判断每读入一条数据时需要在哪些 Item_sum 上进行累积。
 
-![materials/Item_sum_memory.png](materials/Item_sum_memory.png)
+![images/Item_sum_memory.png](images/Item_sum_memory.png)
 
 ​	这样的内存设计可以方便在执行阶段，通过一条数据在 GROUP BY 列表中发生变化的最小层级列对应的下标来判断哪些 Item_sum 需要重置，剩下的 Item_sum 需要累积。也可以判断哪些 Level 已经统计完成，可以返回结果。
 
@@ -152,7 +152,7 @@ SELECT year, country, product, SUM(profit) AS profit
 
 
 
-![materials/process.png](materials/process.png)
+![images/process.png](images/process.png)
 
 ​	如果新的一条数据仅在 product 属性上发生变化，那么 idx = 2；如果在 country 属性上发生变化，那么 idx = 1。
 

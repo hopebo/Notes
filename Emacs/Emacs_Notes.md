@@ -156,12 +156,18 @@ Using `cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON <...>` to generate compile_comma
 Press `C-g` to enter Lisp debugger.
 
 ### 调试某个函数
-#### 在函数定义的地方使用`M-x edebug-defun`, 那么在下一次执行到该函数的时候就会停住， `?` 可以查看调试键位绑定。
+- 在函数定义的地方使用`M-x edebug-defun`, 那么在下一次执行到该函数的时候就会停住， `?` 可以查看调试键位绑定。
 
-#### 在定义的函数部分加上`(debug)`，那么执行到该函数时会自动进行debug模式。
+- 在定义的函数部分加上`(debug)`，那么执行到该函数时会自动进行debug模式。
 
 ## 查看二进制文件
 `M-x hexl-mode`
 
 ## 执行emacs-lisp代码片段
 `C-x C-e eval-last-sexp`
+选择一个region , M-x eval-region
+M-x load-file ~/.emacs
+M-x eval-buffer
+
+## M-x describe-font
+可以定制化字体风格样式
