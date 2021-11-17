@@ -1,7 +1,0 @@
-#+TITLE: Expect
-#+OPTIONS: toc:nil
-
-* Expect Manual
-[[https://www.tcl.tk/man/tcl/TclCmd/expr.htm][Operators]]
-
-[[http://tcl.tk/man/tcl8.5/TclCmd/contents.htm][Tcl Commands]]

@@ -1,7 +1,7 @@
 # MySQL 复制
 
 ## 基本架构
-![materials/replica.png](materials/replica.png)
+![images/replica.png](images/replica.png)
 Master上存放的是binlog，传输到slave上存放的是relaylog，slave上进行重放后会写自己的binlog。
 
 ## Binlog Generate Subsystem

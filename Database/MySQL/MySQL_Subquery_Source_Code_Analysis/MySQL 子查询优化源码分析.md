@@ -8,7 +8,7 @@
 
 ## 子查询在执行计划中的表示
 
-![](/Users/hope/Documents/Notes/Database/MySQL/materials/item_subselect.jpg)
+![](images/item_subselect.jpg)
 
 ## Semijoin/Antijoin
 
@@ -122,7 +122,7 @@ SELECT_LEX::flatten_subqueries()
                             [ON inner-cond]
          [WHERE outer-cond]
          [GROUP BY ...] [HAVING ...] [ORDER BY ...]
-         
+
          3. Negated EXISTS predicates on the form:
 
          SELECT ...
@@ -144,7 +144,7 @@ SELECT_LEX::flatten_subqueries()
          where AJ means "antijoin" and is like a LEFT JOIN; and is-null-cond is
          false if the row of it1 is "found" and "not_null_compl" (i.e. matches
          inner-cond).
-         
+
          4. Negated IN predicates on the form:
 
          SELECT ...
@@ -225,4 +225,3 @@ EXISTS (SELECT 1 FROM ... WHERE subquery_where AND outer_expr=inner_expr)
 
 
 参考：https://dev.mysql.com/doc/refman/8.0/en/subquery-optimization.html
-
