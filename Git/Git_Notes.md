@@ -7,7 +7,7 @@ Git中的每一次提交都产生git commit object，对应全局唯一的commit
 Branches是一种引用(ref)，指向确定的commit号。HEAD是一种特殊的ref，指向我们正在操作的分支。
 
 符号^表示前一次提交，多个^表示前多次提交，如HEAD^。
-符号~后面可接数字表示前几次提交，如HEAD~3。
+符号\~后面可接数字表示前几次提交，如HEAD~3。
 
 
 ## Merge

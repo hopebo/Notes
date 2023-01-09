@@ -1,3 +1,56 @@
+# Basic
+
+- 查看二进制文件 `M-x hexl-mode`
+
+- 执行emacs-lisp代码片段
+
+`C-x C-e eval-last-sexp`
+
+选择一个 region `M-x eval-region`
+
+`M-x load-file ~/.emacs`
+`M-x eval-buffer`
+
+- 定制化字体风格样式 `M-x describe-font`
+
+- 标记区域
+
+`C-@`
+设定标记
+
+`C-x h`
+全选，标记整个 buffer
+
+`C-w`
+kill-region，删除区域中内容
+
+`C-x C-p`
+选取一页
+
+`M-h`
+选取一段
+
+`M-@`
+选取单词
+
+`C-x C-x`
+交换光标和标记位置
+
+- Page Down `C-v`
+
+- Page Up `M-v`
+
+## How to debug in Emacs
+`M-x toggle-debug-on-error` 遇到错误会自动进入debug模式
+`M-x toggle-debug-on-quit` 每次C-g都会打出堆栈
+
+Press `C-g` to enter Lisp debugger.
+
+### 调试某个函数
+- 在函数定义的地方使用`M-x edebug-defun`, 那么在下一次执行到该函数的时候就会停住， `?` 可以查看调试键位绑定。
+
+- 在定义的函数部分加上`(debug)`，那么执行到该函数时会自动进行debug模式。
+
 # C/C++ Mode
 ## Basic movements
 `C-M-f`
@@ -91,9 +144,6 @@ Found the right match so exit navigation mode. Resumable by =M-x tags-loop-conti
 Abort and go back to the location where the search was started.
 
 
-
-
-
 ### Using generated database from *GNU GLOBAL*
 GNU Global has an environment variable named =GTAGSLIBPATH=. This variable holds GTAGS database of external libraries that your project depends on but not inside your project.
 
@@ -148,26 +198,3 @@ sudo cp -R ~/clang+llvm-3.6.0-x86_64-linux-gnu/lib/libclang.so /usr/lib64/
 
 ### Compilation Database
 Using `cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON <...>` to generate compile_commands.json and put it in project directory root. This will help flycheck and company find the header files.
-
-## How to debug in Emacs
-`M-x toggle-debug-on-error` 遇到错误会自动进入debug模式
-`M-x toggle-debug-on-quit` 每次C-g都会打出堆栈
-
-Press `C-g` to enter Lisp debugger.
-
-### 调试某个函数
-- 在函数定义的地方使用`M-x edebug-defun`, 那么在下一次执行到该函数的时候就会停住， `?` 可以查看调试键位绑定。
-
-- 在定义的函数部分加上`(debug)`，那么执行到该函数时会自动进行debug模式。
-
-## 查看二进制文件
-`M-x hexl-mode`
-
-## 执行emacs-lisp代码片段
-`C-x C-e eval-last-sexp`
-选择一个region , M-x eval-region
-M-x load-file ~/.emacs
-M-x eval-buffer
-
-## M-x describe-font
-可以定制化字体风格样式
