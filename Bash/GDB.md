@@ -1,11 +1,9 @@
-# Commands
-
 In order to debug a program effectively, you need to generate debugging information when you compile it. This debugging information is stored in the object file; it describes the data type of each variable or function and the correspondence between source line numbers and addresses in the executable code.
 
 To request debugging information, specify the '-g' option when you run the compile.
 
 
-## gdb
+# gdb
 
 `gdb`
 
@@ -58,7 +56,7 @@ Use the interpreter interp for interface with the controlling program or device.
 This option causes gdb to print statistics about time and memory usage after it completes each command and returns to the prompt.
 
 
-## Debug commands
+# Debug commands
 
 `file`
 
@@ -156,10 +154,10 @@ Continue executing the program.
 Repeat the previous GDB command.
 
 
-## Breakpoint, watchpoint, catchpoint
+# Breakpoint, watchpoint, catchpoint
 
 
-### Breakpoint
+## Breakpoint
 
 `break(b) [location]`
 
@@ -207,7 +205,7 @@ Delete any breakpoints set at the specified location.
     Specifies the line that begins the body of the function function in the file filename. You only need the file name with a function name to avoid ambiguity when there are identically named functions in different source files.
 
 
-### Watchpoint
+## Watchpoint
 
 You can use a watchpoint to stop execution whenever the value of an expression changes, without having to predict a particular place where this may happen. (This is sometimes called a data breakpoint.) The expression may be as simple as the value of a single variable, or as complex as many variables combined by operators. Examples include:
 
@@ -220,7 +218,7 @@ You can use a watchpoint to stop execution whenever the value of an expression c
 `info watchpoints`
 
 
-### Catchpoint
+## Catchpoint
 
 `catch event`
 
@@ -230,7 +228,7 @@ Stop when event occurs. The event can be any of the following:
 -   exception
 
 
-## Backtrace
+# Backtrace
 
 When your program has stopped, the first thing you need to know is where it stopped and how it got there.
 
@@ -249,7 +247,7 @@ Args can be:
 The names where and info stack (abbreviated info s) are additional aliases for backtrace.
 
 
-### Select a frame
+## Select a frame
 
 `frame(f) n`
 
@@ -264,7 +262,7 @@ Select the frame at address stack-addr.
 Move n frames up(down) the stack; n defaults to 1.
 
 
-### Information about a frame
+## Information about a frame
 
 `frame(f)`
 
@@ -283,7 +281,7 @@ Print the arguments of the selected frame, each on a separate line.
 Print the local variables of the selected frame, each on a separate line. These are all variables (declared either static or automatic) accessible at the point of execution of the selected frame.
 
 
-## Multiple threads
+# Multiple threads
 
 The gdb thread debugging facility allows you to observe all threads while your program runs—but whenever gdb takes control, one thread in particular is always the focus of debugging. This thread is called the current thread. Debugging commands show program information from the perspective of the current thread.
 
@@ -308,7 +306,7 @@ Make thread ID thread-id the current thread.
 This command assigns a name to the current thread.
 
 
-## Checkpoint
+# Checkpoint
 
 Returning to a checkpoint effectively undoes everything that has happened in the program since the checkpoint was saved. This includes changes in memory, registers, and even (within some limits) system state. Effectively, it is like going back in time to the moment when the checkpoint was saved.
 
@@ -331,7 +329,7 @@ Restore the program state that was saved as checkpoint number checkpoint-id.
 Delete the previously-saved checkpoint identified by checkpoint-id.
 
 
-## Source file
+# Source file
 
 `list linenum`
 
@@ -370,7 +368,7 @@ Print the source path: show which directories it contains.
 Print the starting and ending addresses of the compiled code for source line location.
 
 
-## Alter execution
+# Alter execution
 
 `set var x=5 or p x=5`
 
@@ -403,7 +401,7 @@ Evaluate the expression expr and display the resulting value. The expression may
 Evaluate the expression expr without displaying void returned values.
 
 
-## Logging output
+# Logging output
 
 `set logging [on|off]`
 
@@ -418,7 +416,7 @@ Change the name of the current logfile. The default logfile is ‘gdb.txt’.
 By default, gdb will append to the logfile. Set overwrite if you want set logging on to overwrite the logfile instead.
 
 
-## Exit
+# Exit
 
 `kill`
 
