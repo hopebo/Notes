@@ -153,6 +153,21 @@ Continue executing the program.
 
 Repeat the previous GDB command.
 
+`info macro N`
+
+查看宏定义
+
+`macro expand ADD(1)`
+
+拓展宏
+
+`set print elements 0`
+
+设置打印长度无限长
+
+`set print repeats 0`
+
+打印完整的字符，不用 repeat 来进行缩写。gdb 打印内存字符串显示的 '\004' 是八进制表示。
 
 # Breakpoint, watchpoint, catchpoint
 
