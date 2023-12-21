@@ -40,6 +40,8 @@ kill-region，删除区域中内容
 
 - Page Up `M-v`
 
+- 选择当前的输入而不是候选 `C-M-j`(ivy-immediate-done)
+
 ## How to debug in Emacs
 `M-x toggle-debug-on-error` 遇到错误会自动进入debug模式
 `M-x toggle-debug-on-quit` 每次C-g都会打出堆栈
@@ -47,7 +49,7 @@ kill-region，删除区域中内容
 Press `C-g` to enter Lisp debugger.
 
 ### 调试某个函数
-- 在函数定义的地方使用`M-x edebug-defun`, 那么在下一次执行到该函数的时候就会停住， `?` 可以查看调试键位绑定。
+- 在函数定义的地方使用`M-x edebug-defun`, 那么在下一次执行到该函数的时候就会停住，`?` 可以查看调试键位绑定。
 
 - 在定义的函数部分加上`(debug)`，那么执行到该函数时会自动进行debug模式。
 

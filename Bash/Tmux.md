@@ -30,6 +30,10 @@
 
 也可以在会话中使用 `ctrl+d`
 
+- 关闭窗口
+
+`ctrl+b &` kill the active window and all panes within it
+
 - 切换会话
 
 `ctrl+b s` 左右键可拓展窗口列表，回车选择
@@ -63,3 +67,29 @@
 - 设置配色
 
 `set -g default-terminal "xterm-256color"`
+
+- 显示所有 window
+
+`ctrl+b w`
+
+- pane 面板操作
+
+`ctrl+b "`水平切割窗口
+
+`ctrl+b %`垂直切割窗口
+
+`ctrl+b o 或者方向键`当前窗口的 pane 切换
+
+`ctrl+b ctrl+o`当前窗口的 pane 切换位置
+
+`ctrl+b z`恢复全屏
+
+`ctrl+d`或者输入命令`kill-pane`能够关闭一个面板
+
+- 复制粘贴
+
+`ctrl+b [`进入复制模式
+
+`ctrl+@`设置 mark，开始选择
+
+`ctrl+w`或`alt+w`进行复制

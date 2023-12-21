@@ -444,3 +444,7 @@ An interrupt (often Ctrl-c) does not exit from gdb, but rather terminates the ac
 `quit or Ctrl-d`
 
 Exit gdb.
+
+# GDB Pretty Printer
+
+当 C++ 的某些类型添加 const 或者 & 引用修饰符使用时，可能会出现 pretty printer 报错的行为，这时可以通过`gdb.types.get_basic_type`函数来去除这些修饰符得到最基本的数据类型，见[gdb.types](https://sourceware.org/gdb/onlinedocs/gdb/gdb_002etypes.html#gdb_002etypes)。
