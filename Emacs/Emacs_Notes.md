@@ -42,6 +42,10 @@ kill-region，删除区域中内容
 
 - 选择当前的输入而不是候选 `C-M-j`(ivy-immediate-done)
 
+`C-M-f forward-sexp` `C-M-b backward-sexp`
+
+成对的括号前进/后退
+
 ## How to debug in Emacs
 `M-x toggle-debug-on-error` 遇到错误会自动进入debug模式
 `M-x toggle-debug-on-quit` 每次C-g都会打出堆栈

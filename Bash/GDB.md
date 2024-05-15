@@ -29,6 +29,10 @@ Pass any arguments after the executable file. This option stops option processin
 
 Disable gdb printing the front material, which describes gdb's non-warranty.
 
+`gdb -ix /home/gdbinit`
+
+gdb 在启动时加载配置文件
+
 `--symbols(-s) file`
 
 Read symbol table from file.
@@ -168,6 +172,14 @@ Repeat the previous GDB command.
 `set print repeats 0`
 
 打印完整的字符，不用 repeat 来进行缩写。gdb 打印内存字符串显示的 '\004' 是八进制表示。
+
+`p (dd::cache::Shared_dictionary_cache)'dd::cache::Shared_dictionary_cache::instance()::s_cache'`
+
+单引号可以帮助打印函数内定义的静态变量
+
+`printf "%s\n", std::string.c_str()`
+
+可以格式化打印字符串
 
 # Breakpoint, watchpoint, catchpoint
 
