@@ -59,6 +59,10 @@ Check the modifications of specified commitID on the file.
 
 搜索提交内容中包含`<string>`的 commit。
 
+`git log --pretty=fuller`
+
+Check out the author date as well as the commit date.
+
 **修改作者信息**
 
 `git commit --amend --author="authorname <email@address.com>"`
